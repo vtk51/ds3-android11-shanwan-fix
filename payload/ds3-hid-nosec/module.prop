@@ -1,0 +1,6 @@
+id=ds3-hid-nosec
+name=DS3 HID security overlay
+version=1.0.0
+versionCode=10000
+author=DS3 fix contributors
+description=Device-derived Site B overlay; affects incoming bonded HID

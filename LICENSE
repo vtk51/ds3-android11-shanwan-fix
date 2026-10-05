@@ -1,0 +1,29 @@
+MIT License (original project contributions in the publication-safe rev7 payload,
+release automation and documentation)
+
+Copyright (c) 2026 ds3-android11-shanwan-fix contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+This project notice does not relicense third-party components. Magisk/Zygisk API,
+AOSP JNI/Bionic and LLVM runtime retain their own permissive terms in LICENSES/
+and THIRD_PARTY_NOTICES.md. The historical proven rev6 binary is not this
+payload and is not distributed. Device firmware, Android platform-tools,
+Magisk core and research/reference sources are not included in this grant.
+See docs/PROVENANCE.md for component provenance and exact-binary live acceptance.

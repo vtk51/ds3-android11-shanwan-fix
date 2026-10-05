@@ -1,0 +1,81 @@
+{
+    "schemaVersion":  1,
+    "id":  "ohm-api30-arm32",
+    "androidApi":  30,
+    "fingerprint":  "Google/ohm/ohm:11/RD2A.211001.002/eng.server.20250607.101030:userdebug/release-keys",
+    "bluetoothAbi":  "armeabi-v7a",
+    "magiskVersionCode":  24300,
+    "zygiskApi":  3,
+    "selinux":  "Permissive",
+    "library":  {
+                    "path":  "/system/lib/libbluetooth.so",
+                    "size":  4138248,
+                    "stockSha256":  "153cb547688608e4070276e1f688d37a8eecb9146c491a34e3d5e793f7763caa",
+                    "patchedSha256":  "68249b8126a3160fdf17a93b464762d8517cea2d25c125aacb4fddb47fddb86c",
+                    "buildId":  "bc23b5e2a1463ef9218d6318663d54be",
+                    "buildIdOffset":  412,
+                    "siteBOffset":  2127514,
+                    "replacement":  "4ff00101",
+                    "signatures":  [
+                                       {
+                                           "offset":  1362310,
+                                           "length":  4,
+                                           "role":  "SET",
+                                           "sha256":  "813e574f3bd20d105b711fb8a71baf81aed1bccd5860bb72ba606e692e4c99b5"
+                                       },
+                                       {
+                                           "offset":  1362270,
+                                           "length":  4,
+                                           "role":  "OUTPUT",
+                                           "sha256":  "eb54c53cb06522f55564bf5a68438b51b1f3cde90efba8b45a21589bbe37a8cf"
+                                       },
+                                       {
+                                           "offset":  1363788,
+                                           "length":  26,
+                                           "role":  "RSP",
+                                           "sha256":  "91cebd1f4add125b76ce240ecd8996c189bb61bcb5e31230f345ceeccce8e24c"
+                                       }
+                                   ],
+                    "siteBLength":  4,
+                    "originalSha256":  "3102f2d928dcf460937069054df1d536afa2a772796dff048098281dd4ef5d6a",
+                    "replacementSha256":  "6fb13e35ad075f9a4d72f618fee726d91e19aca8ec06539e86f3cf41bdc36b7c"
+                },
+    "hook":  {
+                 "sha256":  "e4183947d3ef3917b4b8cc261b3a869e6190aedcd59c87728b24061a578447cf",
+                 "size":  36076,
+                 "elfClass":  1,
+                 "machine":  40,
+                 "targetProcess":  "com.android.bluetooth",
+                 "handleOffset":  4,
+                 "fdOffset":  16,
+                 "gate":  {
+                              "type":  3,
+                              "size":  5,
+                              "reportNumber":  244
+                          },
+                 "uhidEventSize":  4380,
+                 "setVa":  "0x14d986",
+                 "outputVa":  "0x14d95e",
+                 "completionVa":  "0x14df4c",
+                 "artifact":  "armeabi-v7a.so"
+             },
+    "cachedHid":  {
+                      "HidAttrMask":  "117",
+                      "HidSubClass":  "0",
+                      "HidAppId":  "6",
+                      "HidVendorId":  "1356",
+                      "HidProductId":  "616",
+                      "HidVersion":  "0",
+                      "HidCountryCode":  "33",
+                      "HidSSRMaxLatency":  "65535",
+                      "HidSSRMinTimeout":  "65535",
+                      "HidDescriptor":  "05010904a101a102850175089501150026ff00810375019513150025013500450105091901291381027501950d0600ff8103150026ff0005010901a10075089504350046ff0009300931093209358102c0050175089527090181027508953009019102750895300901b102c0a1028502750895300901b102c0a10285ee750895300901b102c0a10285ef750895300901b102c0c0"
+                  },
+    "masterBdaddr":  "MANUAL_GATE",
+    "publication":  {
+                        "ready":  true,
+                        "blocker":  "NONE",
+                        "approval":  "PRODUCTION_APPROVED_PUBLICATION_SAFE_REV7",
+                        "liveAcceptance":  "PASS"
+                    }
+}

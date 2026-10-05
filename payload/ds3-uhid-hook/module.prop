@@ -1,0 +1,6 @@
+id=ds3-uhid-hook
+name=DS3 UHID reply hook
+version=1.0.0-rev7
+versionCode=10000
+author=DS3 fix contributors
+description=Pinned ARM32 Android 11 UHID SET_REPORT reply hook
