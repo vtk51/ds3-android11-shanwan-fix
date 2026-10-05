@@ -1,0 +1,27 @@
+name: Offline release checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export public working tree without repository metadata
+        shell: powershell
+        run: Remove-Item -LiteralPath .git -Recurse -Force
+      - name: Syntax, profile schema, pins, checksums, fail-closed and hygiene tests
+        shell: powershell
+        run: .\tests\run.ps1
+      - name: Archive extraction and self-containment
+        shell: powershell
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'release.zip'
+          $unpack = Join-Path $env:RUNNER_TEMP 'release-clean'
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::CreateFromDirectory($PWD.Path, $archive)
+          [IO.Compression.ZipFile]::ExtractToDirectory($archive, $unpack)
+          & (Join-Path $unpack 'tests/run.ps1')
+      - name: License and complete production payload publication gate
+        shell: powershell
+        run: .\tests\run.ps1 -RequirePublishable
