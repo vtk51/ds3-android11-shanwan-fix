@@ -1,0 +1,118 @@
+name: Bootstrap verified v1.0.0 publication
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.repository == 'vtk51/ds3-android11-shanwan-fix'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout staged release
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct and verify exact archive
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $parts = @(Get-ChildItem '.bootstrap' -Filter 'part-*.b64' | Sort-Object Name)
+          if ($parts.Count -ne 14) {
+            throw "Expected 14 archive chunks, found $($parts.Count)"
+          }
+
+          $b64 = ($parts | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join ''
+          $b64 = $b64 -replace '\s', ''
+
+          $zip = Join-Path $env:RUNNER_TEMP 'ds3-android11-shanwan-fix-1.0.0.zip'
+          [IO.File]::WriteAllBytes($zip, [Convert]::FromBase64String($b64))
+
+          $zipSha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($zipSha -ne 'd08c8b071b3f91ea3dd11060c4bfe705192639528d1b14834fe007c81481ab68') {
+            throw "ZIP SHA256 mismatch: $zipSha"
+          }
+
+          $extract = Join-Path $env:RUNNER_TEMP 'release-tree'
+          if (Test-Path $extract) {
+            Remove-Item $extract -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $extract | Out-Null
+          Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+
+          if (-not (Test-Path (Join-Path $extract 'tests\run.ps1'))) {
+            throw 'Clean extraction is missing tests/run.ps1'
+          }
+
+          $payload = Join-Path $extract 'payload\ds3-uhid-hook\zygisk\armeabi-v7a.so'
+          if (-not (Test-Path $payload)) {
+            throw 'Approved production payload is missing after extraction'
+          }
+
+          $payloadSha = (Get-FileHash -LiteralPath $payload -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($payloadSha -ne 'e4183947d3ef3917b4b8cc261b3a869e6190aedcd59c87728b24061a578447cf') {
+            throw "Payload SHA256 mismatch: $payloadSha"
+          }
+
+          "ZIP_PATH=$zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "EXTRACT_PATH=$extract" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Run publishable offline suite from clean extraction
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Push-Location $env:EXTRACT_PATH
+          try {
+            & pwsh -NoProfile -ExecutionPolicy Bypass -File '.\tests\run.ps1' -RequirePublishable
+            if ($LASTEXITCODE -ne 0) {
+              throw "Publishable test suite failed with exit code $LASTEXITCODE"
+            }
+          }
+          finally {
+            Pop-Location
+          }
+
+      - name: Publish clean tree, tag, and GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git checkout --orphan release-v1.0.0
+          git rm -rf .
+
+          Copy-Item -Path (Join-Path $env:EXTRACT_PATH '*') -Destination '.' -Recurse -Force
+
+          git add -A
+          git commit -m 'Release v1.0.0'
+
+          git push --force origin HEAD:main
+          git push --force origin HEAD:master
+
+          git tag -f -a v1.0.0 -m 'v1.0.0'
+          git push --force origin refs/tags/v1.0.0
+
+          $notes = @'
+          Publication-safe DS3 Android 11 SHANWAN fix v1.0.0.
+
+          Approved production payload SHA256:
+          e4183947d3ef3917b4b8cc261b3a869e6190aedcd59c87728b24061a578447cf
+
+          Release ZIP SHA256:
+          d08c8b071b3f91ea3dd11060c4bfe705192639528d1b14834fe007c81481ab68
+
+          Known issue: LED indicators 1/2/3/4 may continue slowly blinking instead of showing the player number.
+          '@
+
+          gh release create v1.0.0 $env:ZIP_PATH --verify-tag --title 'v1.0.0' --notes $notes
