@@ -79,29 +79,68 @@ jobs:
             Pop-Location
           }
 
-      - name: Publish clean tree, tag, and GitHub release
+      - name: Push verified release files while preserving bootstrap workflow
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-          git checkout --orphan release-v1.0.0
-          git rm -rf .
+          Get-ChildItem -Force |
+            Where-Object { $_.Name -notin @('.git', '.github') } |
+            Remove-Item -Recurse -Force
 
-          Copy-Item -Path (Join-Path $env:EXTRACT_PATH '*') -Destination '.' -Recurse -Force
+          if (Test-Path '.github') {
+            Get-ChildItem '.github' -Force |
+              Where-Object { $_.Name -ne 'workflows' } |
+              Remove-Item -Recurse -Force
+          }
+          if (Test-Path '.github\workflows') {
+            Get-ChildItem '.github\workflows' -Force |
+              Where-Object { $_.Name -ne 'bootstrap-release.yml' } |
+              Remove-Item -Recurse -Force
+          }
+
+          Get-ChildItem $env:EXTRACT_PATH -Force |
+            Where-Object { $_.Name -ne '.github' } |
+            Copy-Item -Destination '.' -Recurse -Force
 
           git add -A
-          git commit -m 'Release v1.0.0'
+          git commit -m 'Stage exact v1.0.0 release tree'
+          git push origin HEAD:main
 
-          git push --force origin HEAD:main
-          git push --force origin HEAD:master
+      - name: Wait for connector finalization and create release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
 
-          git tag -f -a v1.0.0 -m 'v1.0.0'
-          git push --force origin refs/tags/v1.0.0
+          $ready = $false
+          for ($i = 0; $i -lt 90; $i++) {
+            gh api 'repos/vtk51/ds3-android11-shanwan-fix/contents/.github/workflows/release-check.yml?ref=main' --silent 2>$null
+            $hasReleaseCheck = ($LASTEXITCODE -eq 0)
+
+            gh api 'repos/vtk51/ds3-android11-shanwan-fix/contents/.github/workflows/bootstrap-release.yml?ref=main' --silent 2>$null
+            $hasBootstrap = ($LASTEXITCODE -eq 0)
+
+            if ($hasReleaseCheck -and -not $hasBootstrap) {
+              $ready = $true
+              break
+            }
+
+            Start-Sleep -Seconds 5
+          }
+
+          if (-not $ready) {
+            throw 'Timed out waiting for clean final GitHub tree'
+          }
+
+          $finalSha = (gh api 'repos/vtk51/ds3-android11-shanwan-fix/commits/main' --jq '.sha').Trim()
+          if (-not $finalSha) {
+            throw 'Could not resolve final main commit'
+          }
 
           $notes = @'
           Publication-safe DS3 Android 11 SHANWAN fix v1.0.0.
@@ -115,4 +154,4 @@ jobs:
           Known issue: LED indicators 1/2/3/4 may continue slowly blinking instead of showing the player number.
           '@
 
-          gh release create v1.0.0 $env:ZIP_PATH --verify-tag --title 'v1.0.0' --notes $notes
+          gh release create v1.0.0 $env:ZIP_PATH --target $finalSha --title 'v1.0.0' --notes $notes
