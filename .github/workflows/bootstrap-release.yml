@@ -1,0 +1,75 @@
+name: Bootstrap v1.0.0 release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bootstrap/chunk-*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bootstrap-v1
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Assemble verified release and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_chunks=18
+          actual_chunks="$(find .bootstrap -maxdepth 1 -type f -name 'chunk-*' 2>/dev/null | wc -l)"
+          if [ "$actual_chunks" -ne "$expected_chunks" ]; then
+            echo "Waiting for all chunks: $actual_chunks/$expected_chunks"
+            exit 0
+          fi
+
+          tmpzip=/tmp/ds3-android11-shanwan-fix-1.0.0.zip
+          cat $(find .bootstrap -maxdepth 1 -type f -name 'chunk-*' | sort) | base64 -d > "$tmpzip"
+          echo "d08c8b071b3f91ea3dd11060c4bfe705192639528d1b14834fe007c81481ab68  $tmpzip" | sha256sum -c -
+
+          rm -rf /tmp/release-root
+          mkdir -p /tmp/release-root
+          python3 - "$tmpzip" /tmp/release-root <<'PY'
+          import sys, zipfile, pathlib
+          zpath, out = sys.argv[1], pathlib.Path(sys.argv[2])
+          with zipfile.ZipFile(zpath) as z:
+              for info in z.infolist():
+                  rel = pathlib.PurePosixPath(info.filename.replace("\\", "/"))
+                  if rel.is_absolute() or ".." in rel.parts:
+                      raise SystemExit(f"unsafe path: {info.filename}")
+                  dst = out.joinpath(*rel.parts)
+                  dst.parent.mkdir(parents=True, exist_ok=True)
+                  if not info.is_dir():
+                      dst.write_bytes(z.read(info.filename))
+          PY
+
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a /tmp/release-root/. .
+
+          test "$(sha256sum payload/ds3-uhid-hook/zygisk/armeabi-v7a.so | awk '{print $1}')" = "e4183947d3ef3917b4b8cc261b3a869e6190aedcd59c87728b24061a578447cf"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Release v1.0.0"
+          final_sha="$(git rev-parse HEAD)"
+          git push origin HEAD:main
+          git push origin HEAD:master --force
+
+          git tag -a v1.0.0 -m "v1.0.0"
+          git push origin v1.0.0
+
+          gh release create v1.0.0 "$tmpzip"             --repo "$GITHUB_REPOSITORY"             --title "v1.0.0"             --notes "Initial public release. Exact approved publication-safe rev7 payload SHA256: e4183947d3ef3917b4b8cc261b3a869e6190aedcd59c87728b24061a578447cf. Release ZIP SHA256: d08c8b071b3f91ea3dd11060c4bfe705192639528d1b14834fe007c81481ab68. LED 1-4 player indication remains a documented cosmetic known issue."
+
+          echo "FINAL_COMMIT=$final_sha"
